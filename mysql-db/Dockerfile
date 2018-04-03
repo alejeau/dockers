@@ -1,7 +1,7 @@
-FROM mysql:5.5
+FROM mysql:latest
 
 ENV MYSQL_ALLOW_EMPTY_PASSWORD true
 
-COPY config/database.sql /docker-entrypoint-initdb.d/
+COPY config/ /docker-entrypoint-initdb.d/
 
 

@@ -8,9 +8,10 @@ RUN apt update \
 	&& apt install -y maven \
 	&& apt install -y git
 
-RUN git clone https://github.com/alejeau/computer-database.git
+USER root
 
-RUN cd computer-database \
-        && git checkout dev \ 
-        && mvn clean install
+COPY config-files/git-and-test.sh /home/git-and-test.sh
+COPY config-files/db.properties /home/db.properties
 
+
+RUN chmod +x /home/git-and-test.sh
