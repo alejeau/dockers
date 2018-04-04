@@ -14,7 +14,8 @@ MYSQL_CONTAINER=mysql-db
 
 #Debian+JDK8+MVN+GIT+CDB vars
 DEB_CONTAINER=jdk8-mvn-cdb
-MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
+#MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
+MVN_REPO=/home/kranium632/.m2/repository:/root/.m2/repository
 
 function start {
     # Create newtork
@@ -27,17 +28,20 @@ function start {
     docker run --name $MYSQL_CONTAINER -tid $MYSQL_CONTAINER
 
     # Wait for mysql server to be up
+    echo "Waiting 10 seconds for the MySQL server to be up and running..."
     sleep 10
+    echo "done!"
 
     # Start MySQL container
-    #docker start $MYSQL_CONTAINER
+    docker start $MYSQL_CONTAINER
 
     # Link MYSQL_CONTAINER to the network
-    #docker network connect -ip=$MYSQL_IP $NET_NAME $MYSQL_CONTAINER
+    docker network connect --ip=$MYSQL_IP $NET_NAME $MYSQL_CONTAINER
 }
 
 function exec {
-    echo "Not implemented!"
+    docker start $MYSQL_CONTAINER
+    docker exec $DEB_CONTAINER /bin/sh -c '/home/git-and-test.sh'
 }
 
 function stop {
@@ -53,6 +57,10 @@ function stop {
     docker network rm $NET_NAME
 }
 
+function inspect {
+    docker network inspect $NET_NAME
+}
+
 
 for i in "$@"
 do
@@ -63,15 +71,18 @@ case $i in
     -e|--exec)
         exec
         ;;
-    -q|--stop)
+    -k|--kill|--stop)
         stop
         ;;
     -r|--restart)
         stop
         start
         ;;
+    -i|--inspect)
+        inspect
+        ;;
     *)
-        echo $"Usage: $0 {start|exec|stop|restart}"
+        echo $"Usage: $0 {start|exec|stop|kill|restart|inspect}"
         exit 1
 esac
 done
