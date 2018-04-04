@@ -17,6 +17,17 @@ DEB_CONTAINER=jdk8-mvn-cdb
 #MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
 MVN_REPO=/home/kranium632/.m2/repository:/root/.m2/repository
 
+function build {
+    DOCKER_TARGET=$1
+    cd $DOCKER_TARGET && docker build -t $DOCKER_TARGET .
+}
+
+
+function build-no-cache {
+    DOCKER_TARGET=$1
+    cd $DOCKER_TARGET && docker build --no-cache -t $DOCKER_TARGET .
+}
+
 function start {
     # Create newtork
     docker network create --subnet=$SUBNET_MASK  $NET_NAME
@@ -62,17 +73,33 @@ function inspect {
 }
 
 
-for i in "$@"
+POSITIONAL=()
+while [[ $# -gt 0 ]]
 do
-case $i in
+key="$1"
+
+case $key in
+    -b|--build)
+        build "$2"
+        shift # past argument
+        shift # past value
+        ;;
+    -bnc|--build-no-cache)
+        build-no-cache "$2"
+        shift # past argument
+        shift # past value
+        ;;
     -s|--start)
         start
+        shift # past argument=value
         ;;
     -e|--exec)
         exec
+        shift # past argument=value
         ;;
     -k|--kill|--stop)
         stop
+        shift # past argument=value
         ;;
     -r|--restart)
         stop
@@ -82,7 +109,8 @@ case $i in
         inspect
         ;;
     *)
-        echo $"Usage: $0 {start|exec|stop|kill|restart|inspect}"
+        echo $"Usage: $0 {start|exec|stop|kill|restart|inspect|build|build-no-cache}"
         exit 1
 esac
 done
+set -- "${POSITIONAL[@]}" # restore positional parameters
