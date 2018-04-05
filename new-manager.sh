@@ -1,4 +1,32 @@
 #!/bin/bash
+
+# file: new-manager
+# new-manager.sh parameter-completion
+
+_new-manager ()   #  By convention, the function name
+{                 #+ starts with an underscore.
+  local cur
+  # Pointer to current completion word.
+  # By convention, it's named "cur" but this isn't strictly necessary.
+
+  COMPREPLY=()   # Array variable storing the possible completions.
+  cur=${COMP_WORDS[COMP_CWORD]}
+
+  case "$cur" in
+    -*) # Specify all the options
+    COMPREPLY=( $( compgen -W '-b --build  --build-all  -bnc --build-no-cache \
+        -s --start  --start-jnkns  --start-all  --exec  -t --stop  --stop-all \
+        --kill  --kill-all  --restart  --inspect  --clear-containers --' -- $cur ) );;
+    *) # Reads the files in the directory
+    COMPREPLY=( $( compgen -W '$(ls)' -- $cur ) );;
+  esac
+
+  return 0
+}
+
+complete -F _new-manager -o filenames ./new-manager.sh
+#        ^^ ^^^^^^^^^^^^  Invokes the function _new-manager.
+
 # Args from the command line
 ARG1=$1
 # wc $ARG1
@@ -19,6 +47,7 @@ MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
 
 # Jekins container
 JNKNS_CONTAINER=jnkns-cdb
+DOCKER_BIN=$(which docker):/usr/bin/docker
 
 CONTAINERS=($MYSQL_CONTAINER $DEB_CONTAINER $JNKNS_CONTAINER)
 
@@ -46,9 +75,17 @@ function start {
     docker start $DOCKER_TARGET
 }
 
+function start-jnkns {
+    docker network create --subnet=$SUBNET_MASK  $NET_NAME
+    docker run -dit -v $DOCKER_BIN --name $JNKNS_CONTAINER --net=$NET_NAME --ip=$JNKNS_IP $JNKNS_CONTAINER
+}
+
 function start-all {
     # Create newtork
     docker network create --subnet=$SUBNET_MASK  $NET_NAME
+    
+    # Start jenkins container
+    docker run -dit -v $DOCKER_BIN --name $JNKNS_CONTAINER --net=$NET_NAME --ip=$JNKNS_IP
 
     # Start container with Debian+JDK8+MVN+GIT+CDB and add it to the network
     docker run -dit -v $MVN_REPO --name $DEB_CONTAINER --net=$NET_NAME --ip=$DEB_IP $DEB_CONTAINER
@@ -136,6 +173,10 @@ case $key in
         start
         shift # past argument=value
         ;;
+    --start-jnkns)
+        start-jnkns
+        shift # past argument=value
+        ;;
     --start-all)
         start-all
         shift # past argument=value
@@ -144,7 +185,7 @@ case $key in
         exec
         shift # past argument=value
         ;;
-    -stop|--stop)
+    -t|--stop)
         stop "$2"
         shift # past argument=value
         ;;
