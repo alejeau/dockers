@@ -1,5 +1,8 @@
 *.txt
 logs/*
+computer-database/*.war
+jnkns-cdb/computer-database/*.war
+
 # Created by https://www.gitignore.io/api/linux,eclipse,intellij
 
 ### Eclipse ###

@@ -16,7 +16,9 @@ _new-manager ()   #  By convention, the function name
     -*) # Specify all the options
     COMPREPLY=( $( compgen -W '-b --build  --build-all  -bnc --build-no-cache \
         -s --start  --start-jnkns  --start-all  --exec  -t --stop  --stop-all \
-        --kill  --kill-all  --restart  --inspect  --clear-containers --' -- $cur ) );;
+        --kill  --kill-all  --restart  --inspect  --clear-containers \
+        --tomcat-startup --tomcat-terminate
+        --' -- $cur ) );;
     *) # Reads the files in the directory
     COMPREPLY=( $( compgen -W '$(ls)' -- $cur ) );;
   esac
@@ -50,6 +52,12 @@ JNKNS_CONTAINER=jnkns-cdb
 DOCKER_BIN=$(which docker):/usr/bin/docker
 DOCKER_SOCKET=/var/run/docker.sock:/var/run/docker.sock
 
+# tomcat vars
+TOMCAT_CONTAINER=computer-database
+TOMCAT_NET=tomcat-net
+TOMCAT_MASK=172.19.0.0/16
+TOMCAT_IP=172.19.0.2
+
 CONTAINERS=($MYSQL_CONTAINER $DEB_CONTAINER $JNKNS_CONTAINER)
 
 function build {
@@ -57,7 +65,6 @@ function build {
     cd $DOCKER_TARGET && docker build -t $DOCKER_TARGET .
     cd ..
 }
-
 
 function build-all {
     for i in ${CONTAINERS[@]}
@@ -151,6 +158,15 @@ function clear-containers {
     docker rm $(docker ps -aq)
 }
 
+function tomcat-startup {
+    docker network create --subnet=$TOMCAT_MASK  $TOMCAT_NET
+    docker run -dit --name $TOMCAT_CONTAINER --net=$TOMCAT_NET --ip=$TOMCAT_IP $TOMCAT_CONTAINER
+}
+
+function tomcat-terminate {
+    stop $TOMCAT_CONTAINER
+    docker network rm $TOMCAT_NET
+}
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]
@@ -213,6 +229,14 @@ case $key in
         ;;
     --clear-containers)
         clear-containers
+        ;;
+    --tomcat-startup)
+        tomcat-startup
+        shift # past argument=value
+        ;;
+    --tomcat-terminate)
+        tomcat-terminate
+        shift # past argument=value
         ;;
     *)
         echo $"Usage: $0 {start|exec|stop|kill|restart|inspect|build|build-no-cache}"

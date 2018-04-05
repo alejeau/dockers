@@ -18,3 +18,4 @@ COPY config/computer-database.xml $JENKINS_HOME/jobs/computer-database/config.xm
 COPY config/plugin-list.txt /usr/share/jenkins/ref/plugin-list.txt
 RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugin-list.txt
 
+COPY computer-database /home/computer-database
