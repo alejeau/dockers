@@ -14,7 +14,7 @@ if [ -d "$GIT_TARGET" ];
 then
 # Reset the modified file and pull
 cd $GIT_TARGET \
-    && git reset $CONFIG_FILE
+    && git reset $CONFIG_FILE \
     && git pull
 else
     # Clone the GIT_TARGET

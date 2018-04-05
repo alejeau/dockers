@@ -48,6 +48,7 @@ MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
 # Jekins container
 JNKNS_CONTAINER=jnkns-cdb
 DOCKER_BIN=$(which docker):/usr/bin/docker
+DOCKER_SOCKET=/var/run/docker.sock:/var/run/docker.sock
 
 CONTAINERS=($MYSQL_CONTAINER $DEB_CONTAINER $JNKNS_CONTAINER)
 
@@ -76,8 +77,7 @@ function start {
 }
 
 function start-jnkns {
-    docker network create --subnet=$SUBNET_MASK  $NET_NAME
-    docker run -dit -v $DOCKER_BIN --name $JNKNS_CONTAINER --net=$NET_NAME --ip=$JNKNS_IP $JNKNS_CONTAINER
+    docker run -dit -v $DOCKER_BIN -v $DOCKER_SOCKET --name $JNKNS_CONTAINER --net=$NET_NAME --ip=$JNKNS_IP $JNKNS_CONTAINER
 }
 
 function start-all {
@@ -85,13 +85,16 @@ function start-all {
     docker network create --subnet=$SUBNET_MASK  $NET_NAME
     
     # Start jenkins container
-    docker run -dit -v $DOCKER_BIN --name $JNKNS_CONTAINER --net=$NET_NAME --ip=$JNKNS_IP
+    start-jnkns
+    
+    # Gives jenkins the right to see the files in $JEANKINS_HOME/jobs
+    docker exec $JNKNS_CONTAINER sudo chown -R jenkins:jenkins /var/jenkins_home/jobs
 
     # Start container with Debian+JDK8+MVN+GIT+CDB and add it to the network
     docker run -dit -v $MVN_REPO --name $DEB_CONTAINER --net=$NET_NAME --ip=$DEB_IP $DEB_CONTAINER
 
     # Launch MySQL container
-    docker run --name $MYSQL_CONTAINER -tid $MYSQL_CONTAINER
+    docker run --name $MYSQL_CONTAINER --net=$NET_NAME --ip=$MYSQL_IP -dit $MYSQL_CONTAINER
 
     # Wait for mysql server to be up
     echo "Waiting 10 seconds for the MySQL server to be up and running..."
@@ -99,10 +102,10 @@ function start-all {
     echo "done!"
 
     # Start MySQL container
-    docker start $MYSQL_CONTAINER
+#     docker start $MYSQL_CONTAINER
 
     # Link MYSQL_CONTAINER to the network
-    docker network connect --ip=$MYSQL_IP $NET_NAME $MYSQL_CONTAINER
+#     docker network connect --ip=$MYSQL_IP $NET_NAME $MYSQL_CONTAINER
 }
 
 function exec {
@@ -202,8 +205,8 @@ case $key in
         shift # past argument=value
         ;;
     --restart)
-        stop
-        start
+        kill-all
+        start-all
         ;;
     --inspect)
         inspect
