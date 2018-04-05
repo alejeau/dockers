@@ -1,27 +1,40 @@
 #!/bin/bash
 # Args from the command line
 ARG1=$1
-#wc $ARG1
+# wc $ARG1
 
 # NET related vars
 NET_NAME=mysql-db-net
 SUBNET_MASK=172.18.0.0/16
-DEB_IP=172.18.0.3
 MYSQL_IP=172.18.0.2
+DEB_IP=172.18.0.3
+JNKNS_IP=172.18.0.4
 
 # MySQL vars
 MYSQL_CONTAINER=mysql-db
 
 #Debian+JDK8+MVN+GIT+CDB vars
 DEB_CONTAINER=jdk8-mvn-cdb
-#MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
-MVN_REPO=/home/kranium632/.m2/repository:/root/.m2/repository
+MVN_REPO=/home/excilys/.m2/repository:/root/.m2/repository
+
+# Jekins container
+JNKNS_CONTAINER=jnkns-cdb
+
+CONTAINERS=($MYSQL_CONTAINER $DEB_CONTAINER $JNKNS_CONTAINER)
 
 function build {
     DOCKER_TARGET=$1
     cd $DOCKER_TARGET && docker build -t $DOCKER_TARGET .
+    cd ..
 }
 
+
+function build-all {
+    for i in ${CONTAINERS[@]}
+    do
+        build $i
+    done
+}
 
 function build-no-cache {
     DOCKER_TARGET=$1
@@ -29,11 +42,16 @@ function build-no-cache {
 }
 
 function start {
+    DOCKER_TARGET=$1
+    docker start $DOCKER_TARGET
+}
+
+function start-all {
     # Create newtork
     docker network create --subnet=$SUBNET_MASK  $NET_NAME
 
     # Start container with Debian+JDK8+MVN+GIT+CDB and add it to the network
-    docker run -dit -v $MVN_REPO --name $DEB_CONTAINER --net=$NET_NAME --ip=$DEB_IP $DEB_CONTAINER 
+    docker run -dit -v $MVN_REPO --name $DEB_CONTAINER --net=$NET_NAME --ip=$DEB_IP $DEB_CONTAINER
 
     # Launch MySQL container
     docker run --name $MYSQL_CONTAINER -tid $MYSQL_CONTAINER
@@ -56,13 +74,30 @@ function exec {
 }
 
 function stop {
+    DOCKER_TARGET=$1
     # Stop running container
-    docker stop $DEB_CONTAINER
-    docker stop $MYSQL_CONTAINER
-
+    docker stop $DOCKER_TARGET
     # Remove docker images
-    docker rm $DEB_CONTAINER
-    docker rm $MYSQL_CONTAINER
+    docker rm $DOCKER_TARGET
+}
+
+function stop-all {
+    for i in ${CONTAINERS[@]}
+    do 
+        stop $i
+    done
+}
+
+function kill {
+    # Remove network
+    docker network rm $NET_NAME
+}
+
+function kill-all {
+    for i in ${CONTAINERS[@]}
+    do
+        stop $i
+    done
 
     # Remove network
     docker network rm $NET_NAME
@@ -70,6 +105,10 @@ function stop {
 
 function inspect {
     docker network inspect $NET_NAME
+}
+
+function clear-containers {
+    docker rm $(docker ps -aq)
 }
 
 
@@ -84,6 +123,10 @@ case $key in
         shift # past argument
         shift # past value
         ;;
+    --build-all)
+        build-all
+        shift # past argument=value
+        ;;
     -bnc|--build-no-cache)
         build-no-cache "$2"
         shift # past argument
@@ -93,20 +136,39 @@ case $key in
         start
         shift # past argument=value
         ;;
-    -e|--exec)
+    --start-all)
+        start-all
+        shift # past argument=value
+        ;;
+    --exec)
         exec
         shift # past argument=value
         ;;
-    -k|--kill|--stop)
-        stop
+    -stop|--stop)
+        stop "$2"
         shift # past argument=value
         ;;
-    -r|--restart)
+    --stop-all)
+        stop-all
+        shift # past argument=value
+        ;;
+    --kill)
+        kill "$2"
+        shift # past argument=value
+        ;;
+    --kill-all)
+        kill-all
+        shift # past argument=value
+        ;;
+    --restart)
         stop
         start
         ;;
-    -i|--inspect)
+    --inspect)
         inspect
+        ;;
+    --clear-containers)
+        clear-containers
         ;;
     *)
         echo $"Usage: $0 {start|exec|stop|kill|restart|inspect|build|build-no-cache}"
