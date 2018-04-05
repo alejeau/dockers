@@ -1,6 +1,7 @@
 # Install debian 9.4
 FROM debian:stretch
 
+# Installs JAVA 8, maven and git
 RUN apt update \
 	&& apt install -y apt-utils \
 	&& apt upgrade -y \
@@ -8,10 +9,11 @@ RUN apt update \
 	&& apt install -y maven \
 	&& apt install -y git
 
+# sets USER as ROOT
 USER root
 
-COPY config-files/git-and-test.sh /home/git-and-test.sh
-COPY config-files/db.properties /home/db.properties
+# Copy the test shell
+COPY exec/git-and-test.sh /home/git-and-test.sh
 
-
+# Runs the test shell
 RUN chmod +x /home/git-and-test.sh
