@@ -34,9 +34,20 @@
         <hudson.tasks.Shell>
         <command># Debian+JDK8+MVN+GIT+CDB container name
 DEB_CONTAINER=jdk8-mvn-cdb
+MAVEN_PROJECT=computer-database
+DOCKER_ID_USER=alejeau
 
 # Launch the pull and tests
-sudo docker exec $DEB_CONTAINER /bin/sh -c &apos;/home/git-and-test.sh&apos;
+sudo docker exec $DEB_CONTAINER /bin/sh -c &apos;/home/git-and-run.sh -t test&apos;
+
+# Launch pull master and package the app
+sudo docker exec $DEB_CONTAINER /bin/sh -c &apos;/home/git-and-run.sh -t production&apos;
+
+sudo docker cp $DEB_CONTAINER:$MAVEN_PROJECT/target/$MAVEN_PROJECT.war /home/$MAVEN_PROJECT/$MAVEN_PROJECT.war
+
+sudo docker build /home/$MAVEN_PROJECT/
+
+sudo docker push $DOCKER_ID_USER/$MAVEN_PROJECT:latest
         </command>
         </hudson.tasks.Shell>
     </builders>

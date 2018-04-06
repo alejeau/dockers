@@ -13,7 +13,7 @@ RUN apt update \
 USER root
 
 # Copy the test shell
-COPY exec/git-and-test.sh /home/git-and-test.sh
+COPY exec/git-and-run.sh /home/git-and-run.sh
 
 # Runs the test shell
-RUN chmod +x /home/git-and-test.sh
+RUN chmod +x /home/git-and-run.sh

@@ -36,3 +36,17 @@ Create four Docker images: one for jenkins, one for compilation and tests, one f
 
 - Below the activity diagram to figure out all the process:
 ![image](http://s32.postimg.org/ijyeykoyd/CDProcess_Diagram.png)
+
+# HOW-TOs
+
+## new-manager.sh
+Main use :
+./new-manager.sh --start-all : launches the 3 required containers.
+./new-manager.sh --kill-all : closes the 3 containers and removes them. also removes the network.
+
+## Jenkins access
+Before launching the job, in a terminal, write the following:
+	docker exec -it jnkns-cdb bash
+	sudo docker login
+and log in with credentials.
+Go to http://172.18.0.4:8080/job/computer-database/ to launch the job build manually.
